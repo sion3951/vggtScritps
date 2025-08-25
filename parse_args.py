@@ -1,27 +1,4 @@
-import random
-import numpy as np
-import glob
-import os
-import copy
-import torch
-import torch.nn.functional as F
-
-torch.backends.cudnn.enabled = True
-torch.backends.cudnn.benchmark = True
-torch.backends.cudnn.deterministic = False
-
 import argparse
-from pathlib import Path
-import trimesh
-import pycolmap
-
-from vggt.models.vggt import VGGT
-from vggt.utils.load_fn import load_and_preprocess_images_square
-from vggt.utils.pose_enc import pose_encoding_to_extri_intri
-from vggt.utils.geometry import unproject_depth_map_to_point_map
-from vggt.utils.helper import create_pixel_coordinate_grid, randomly_limit_trues
-from vggt.dependency.track_predict import predict_tracks
-from vggt.dependency.np_to_pycolmap import batch_np_matrix_to_pycolmap, batch_np_matrix_to_pycolmap_wo_track
 
 def parse_args():
     parser = argparse.ArgumentParser(description="VGGT Demo")

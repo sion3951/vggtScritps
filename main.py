@@ -2,7 +2,6 @@ import random
 import numpy as np
 import glob
 import os
-import copy
 import torch
 import torch.nn.functional as F
 
@@ -10,14 +9,11 @@ torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.deterministic = False
 
-import argparse
-from pathlib import Path
 import trimesh
 import pycolmap
 
 from vggt.models.vggt import VGGT
 from vggt.utils.load_fn import load_and_preprocess_images_square
-from vggt.utils.pose_enc import pose_encoding_to_extri_intri
 from vggt.utils.geometry import unproject_depth_map_to_point_map
 from vggt.utils.helper import create_pixel_coordinate_grid, randomly_limit_trues
 from vggt.dependency.track_predict import predict_tracks
@@ -43,8 +39,8 @@ def demo_fn(args):
     # Set device and dtype
     #dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
     dtype = torch.float16
-    #device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    #device = "cpu"
     print(f"Using device: {device}")
     print(f"Using dtype: {dtype}")
 
