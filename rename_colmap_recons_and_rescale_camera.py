@@ -1,7 +1,7 @@
 import copy
 
 def rename_colmap_recons_and_rescale_camera(
-    reconstruction, image_paths, original_coords, img_size, shift_point2d_to_original_res=False, shared_camera=False
+    reconstruction, image_paths, original_coords, img_size, shift_point2d_to_original_res=False
 ):
     rescale_camera = True
 
@@ -32,10 +32,5 @@ def rename_colmap_recons_and_rescale_camera(
 
             for point2D in pyimage.points2D:
                 point2D.xy = (point2D.xy - top_left) * resize_ratio
-
-        if shared_camera:
-            # If shared_camera, all images share the same camera
-            # no need to rescale any more
-            rescale_camera = False
 
     return reconstruction

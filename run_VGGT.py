@@ -8,7 +8,7 @@ torch.backends.cudnn.deterministic = False
 
 from vggt.utils.pose_enc import pose_encoding_to_extri_intri
 
-def run_VGGT(model, images, dtype, resolution=518, batch_size=90):
+def run_VGGT(model, images, dtype, resolution=518, batch_size=3):
     
     num_images = len(images)
     all_extrinsic = []
@@ -27,8 +27,10 @@ def run_VGGT(model, images, dtype, resolution=518, batch_size=90):
         # Process this batch
         batch_images = F.interpolate(batch_images, size=(resolution, resolution), mode="bilinear", align_corners=False)
 
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
         with torch.no_grad():
-            with torch.cuda.amp.autocast(dtype=dtype):
+            with torch.amp.autocast(device_type=device, dtype=dtype):
                 batch_images = batch_images[None]  # add batch dimension
                 aggregated_tokens_list, ps_idx = model.aggregator(batch_images)
 

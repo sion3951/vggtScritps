@@ -77,7 +77,7 @@ def demo_fn(args):
         scale = img_load_resolution / vggt_fixed_resolution
         shared_camera = args.shared_camera
 
-        with torch.cuda.amp.autocast(dtype=dtype):
+        with torch.amp.autocast(device_type=device, dtype=dtype):
             pred_tracks, pred_vis_scores, pred_confs, points_3d, points_rgb = predict_tracks(
                 images,
                 conf=depth_conf,
@@ -163,7 +163,7 @@ def demo_fn(args):
         original_coords.cpu().numpy(),
         img_size=reconstruction_resolution,
         shift_point2d_to_original_res=True,
-        shared_camera=shared_camera,
+        #shared_camera=shared_camera,
     )
 
     print(f"Saving reconstruction to {args.scene_dir}/sparse")
