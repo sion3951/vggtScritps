@@ -4,3 +4,5 @@ images1/
 images2/
 images3/
 sparse/
+tmp/
+.gradio/
