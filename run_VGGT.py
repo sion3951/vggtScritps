@@ -24,6 +24,7 @@ def run_VGGT(model, images, dtype, resolution=518):
     images = F.interpolate(images, size=(resolution, resolution), mode="bilinear", align_corners=False)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    #device = "cpu"
 
     with torch.no_grad():
         with torch.amp.autocast(device_type=device, dtype=dtype):
