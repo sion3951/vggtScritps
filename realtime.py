@@ -16,6 +16,8 @@ from vggt.utils.load_fn import load_and_preprocess_images
 from vggt.utils.geometry import closed_form_inverse_se3, unproject_depth_map_to_point_map
 from vggt.utils.pose_enc import pose_encoding_to_extri_intri
 
+from visual_util import transform_points
+
 def viser_wrapper(
     pred_dict: dict,
     port: int = 8080,
@@ -27,29 +29,32 @@ def viser_wrapper(
     server = viser.ViserServer(host="0.0.0.0", port=port)
     server.gui.configure_theme(titlebar_content=None, control_layout="collapsible")
 
-    images = pred_dict["images"]              # (S, 3, H, W) numpy
+    images = pred_dict["images"]
     world_points_map = pred_dict["world_points"]
     conf_map = pred_dict["world_points_conf"]
     depth_map = pred_dict["depth"]
     depth_conf = pred_dict["depth_conf"]
-    extrinsics_cam = pred_dict["extrinsic"]   # (S, 3, 4) or (S, 4, 4) world->cam
+    extrinsics_cam = pred_dict["extrinsic"]
     intrinsics_cam = pred_dict["intrinsic"]
+
+    # Get camera-to-world matrices (for transforming points)
+    cam_to_world_mat = closed_form_inverse_se3(extrinsics_cam)  # (S,4,4)
+    cam_to_world = cam_to_world_mat[:, :3, :]
 
     if not use_point_map:
         world_points = unproject_depth_map_to_point_map(depth_map, extrinsics_cam, intrinsics_cam)
+        # Fix axes here: transform into world coordinates
+        world_points = transform_points(cam_to_world_mat, world_points)
         conf = depth_conf
     else:
         world_points = world_points_map
         conf = conf_map
 
-    colors = images.transpose(0, 2, 3, 1)  # (S, H, W, 3)
+    colors = images.transpose(0, 2, 3, 1)
     S, H, W, _ = world_points.shape
     points = world_points.reshape(-1, 3)
     colors_flat = (colors.reshape(-1, 3) * 255).astype(np.uint8)
     conf_flat = conf.reshape(-1)
-
-    cam_to_world_mat = closed_form_inverse_se3(extrinsics_cam)  # (S, 4, 4)
-    cam_to_world = cam_to_world_mat[:, :3, :]
 
     scene_center = np.mean(points, axis=0)
     points_centered = points - scene_center
@@ -143,7 +148,7 @@ def viser_wrapper(
     visualize_frames(cam_to_world, images)
 
     def update_predictions(new_pred_dict: dict):
-        images_n = new_pred_dict["images"]  # numpy (S,3,H,W)
+        images_n = new_pred_dict["images"]
         depth_map_n = new_pred_dict.get("depth")
         depth_conf_n = new_pred_dict.get("depth_conf")
         world_points_map_n = new_pred_dict.get("world_points")
@@ -151,8 +156,12 @@ def viser_wrapper(
         extrinsic_n = new_pred_dict["extrinsic"]
         intrinsic_n = new_pred_dict["intrinsic"]
 
+        cam_to_world_mat_n = closed_form_inverse_se3(extrinsic_n)  # (S_n,4,4)
+
         if not use_point_map and depth_map_n is not None:
             world_points_n = unproject_depth_map_to_point_map(depth_map_n, extrinsic_n, intrinsic_n)
+            # Fix axes here: transform into world coordinates
+            world_points_n = transform_points(cam_to_world_mat_n, world_points_n)
             conf_n = depth_conf_n
         else:
             world_points_n = world_points_map_n
@@ -184,7 +193,7 @@ def viser_wrapper(
         point_cloud.points = points_centered_n[combined_mask]
         point_cloud.colors = colors_flat_n[combined_mask]
 
-        cam_to_world_n = closed_form_inverse_se3(extrinsic_n)[:, :3, :]
+        cam_to_world_n = cam_to_world_mat_n[:, :3, :]
         cam_to_world_n[..., -1] -= scene_center_n
         visualize_frames(cam_to_world_n, images_n)
 
@@ -199,6 +208,7 @@ def viser_wrapper(
         while True:
             time.sleep(0.01)
         return server
+
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -230,7 +240,6 @@ def main():
         dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
     else:
         dtype = torch.float32
-
     with torch.no_grad():
         with torch.cuda.amp.autocast(enabled=(device == "cuda"), dtype=dtype if device == "cuda" else None):
             predictions = model(images)
@@ -303,6 +312,7 @@ def main():
         print("Stopping capture loop.")
     finally:
         cap.release()
+
 
 if __name__ == "__main__":
     main()
