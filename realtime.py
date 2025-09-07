@@ -17,6 +17,8 @@ from vggt.utils.geometry import closed_form_inverse_se3, unproject_depth_map_to_
 from vggt.utils.pose_enc import pose_encoding_to_extri_intri
 
 from visual_util import transform_points
+from scipy.spatial.transform import Rotation
+
 
 def viser_wrapper(
     pred_dict: dict,
@@ -157,6 +159,10 @@ def viser_wrapper(
         intrinsic_n = new_pred_dict["intrinsic"]
 
         cam_to_world_mat_n = closed_form_inverse_se3(extrinsic_n)  # (S_n,4,4)
+
+        slight_rotation = np.eye(4)
+        slight_rotation[:3, :3] = Rotation.from_euler('xyz', [0, 90, 90], degrees=True).as_matrix()
+        cam_to_world_mat_n =  slight_rotation * cam_to_world_mat_n
 
         if not use_point_map and depth_map_n is not None:
             world_points_n = unproject_depth_map_to_point_map(depth_map_n, extrinsic_n, intrinsic_n)
